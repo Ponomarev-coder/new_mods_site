@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /kikcustom/
+Disallow: /messenger-api/
+Disallow: /messenger-ws
+Disallow: /account
+Disallow: /upload
+Disallow: /personal_account.html
+Disallow: /Logn_Registration.html
+Disallow: /upload_mods.html
+Disallow: /*?*search=
+Sitemap: https://modskik.ru/sitemap.xml

@@ -1,0 +1,75 @@
+# Copy to /etc/apache2/sites-available/modskik.conf after obtaining certificates.
+# Requires ssl, headers, proxy, proxy_http, proxy_fcgi, setenvif, proxy_wstunnel, reqtimeout, dir, rewrite, alias.
+<VirtualHost *:80>
+    ServerName modskik.ru
+    ServerAlias www.modskik.ru
+    Redirect permanent / https://modskik.ru/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName modskik.ru
+    ServerAlias www.modskik.ru
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/modskik.ru/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/modskik.ru/privkey.pem
+
+    # Only the compiled frontend is public, never the repository root.
+    DocumentRoot /var/www/html/modsKIK/modskik-website/template/dist
+    <Directory /var/www/html/modsKIK>
+        AllowOverride None
+        Require all denied
+    </Directory>
+    <Directory /var/www/html/modsKIK/modskik-website/template/dist>
+        Options -Indexes -ExecCGI -Includes
+        AllowOverride All
+        Require all granted
+        <Files "index.html">
+            Header set Cache-Control "no-cache"
+        </Files>
+    </Directory>
+
+    # All page/API proxy requests carry the edge's client address.
+    RequestHeader set X-Real-IP "expr=%{REMOTE_ADDR}"
+    # Only legacy screenshots are public. Never expose quarantine or all uploads.
+    Alias /uploads/screenshots/ /var/www/html/modsKIK/uploads/screenshots/
+    <Directory /var/www/html/modsKIK/uploads/screenshots>
+        Options -Indexes -ExecCGI -Includes
+        AllowOverride None
+        Require all denied
+        <FilesMatch "(?i)^[A-Za-z0-9._-]+\.(jpg|jpeg|png|webp)$">
+            Require all granted
+            SetHandler default-handler
+        </FilesMatch>
+    </Directory>
+
+    # Only this confirmation page is public; the CLI mail bridge remains private.
+    # Install/enable PHP-FPM (proxy_fcgi, setenvif) and adjust its socket version.
+    Alias /security/confirm_profile_change.php /var/www/html/modsKIK/security/confirm_profile_change.php
+    <Directory /var/www/html/modsKIK/security>
+        Options -Indexes -ExecCGI -Includes
+        AllowOverride None
+        Require all denied
+        <Files "confirm_profile_change.php">
+            Require all granted
+            SetHandler "proxy:unix:/run/php/php8.3-fpm.sock|fcgi://localhost/"
+        </Files>
+    </Directory>
+    <Location "/security/confirm_profile_change.php">
+        Header always set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+        Header always set Referrer-Policy "no-referrer"
+        Header always set Cache-Control "no-store"
+        Header always set X-Robots-Tag "noindex, nofollow"
+    </Location>
+
+    ProxyRequests Off
+    ProxyPreserveHost On
+    ProxyAddHeaders Off
+    Include /var/www/html/modsKIK/KIKCustom-system-core/deploy/apache.conf.example
+    Include /var/www/html/modsKIK/system-core/deploy/apache2-modskik-system-core.conf.example
+
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" "expr=%{REQUEST_URI} != '/security/confirm_profile_change.php'"
+    ErrorLog ${APACHE_LOG_DIR}/modskik-error.log
+    CustomLog ${APACHE_LOG_DIR}/modskik-access.log combined
+</VirtualHost>

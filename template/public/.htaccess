@@ -1,0 +1,47 @@
+# This file belongs in dist, with dist as the VirtualHost DocumentRoot.
+# Requires rewrite, proxy, proxy_http, headers, authz_core.
+Options -Indexes -MultiViews
+DirectoryIndex disabled
+ErrorDocument 404 /404.html
+RewriteEngine On
+
+RewriteCond %{HTTP_HOST} ^www\.modskik\.ru$ [NC]
+RewriteRule ^ https://modskik.ru%{REQUEST_URI} [R=301,L,NE]
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP_HOST} ^modskik\.ru$ [NC]
+RewriteRule ^ https://modskik.ru%{REQUEST_URI} [R=301,L,NE]
+
+RewriteCond %{THE_REQUEST} \s/+index\.(html|php)[?\s] [NC]
+RewriteRule ^index\.(html|php)$ / [R=301,L]
+RewriteRule ^robot\.txt$ /robots.txt [R=301,L]
+RewriteRule ^(personal_account|Logn_Registration)\.html$ /account [R=301,L,QSD]
+RewriteRule ^upload_mods\.html$ /upload [R=301,L,QSD]
+RewriteRule ^information_page\.html$ /information [R=301,L,QSD]
+RewriteRule ^cookie_policy\.html$ /privacy [R=301,L,QSD]
+
+# Fixed backend targets only; never proxy user-supplied hosts.
+RewriteRule ^$ http://127.0.0.1:8091/kikcustom/pages/home [P,L]
+RewriteRule ^mods/([0-9]+)/$ /mods/$1 [R=301,L]
+RewriteRule ^mods/([0-9]+)$ http://127.0.0.1:8091/kikcustom/pages/mod/$1 [P,L]
+RewriteRule ^mod\.(html|php)$ http://127.0.0.1:8091/kikcustom/pages/legacy [P,L]
+RewriteRule ^sitemap\.xml$ http://127.0.0.1:8091/kikcustom/pages/sitemap.xml [P,L]
+RewriteRule ^(account|upload|information|privacy)/$ /$1 [R=301,L]
+RewriteRule ^(account|upload|information|privacy)$ index.html [END]
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+<Files "index.html">
+    Header set Cache-Control "no-cache"
+</Files>
+<FilesMatch "\.(?:js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+<FilesMatch "\.(?:png|jpg|jpeg|webp|ico)$">
+    Header set Cache-Control "public, max-age=86400"
+</FilesMatch>
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# THE_REQUEST survives internal rewriting of /account to index.html.
+Header always set X-Robots-Tag "noindex, nofollow" "expr=%{THE_REQUEST} =~ m#\s/+(?:account|upload)(?:[/?\s])#"

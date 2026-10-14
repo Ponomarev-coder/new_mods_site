@@ -1,0 +1,24 @@
+{
+  "short_name": "modsKIK",
+  "name": "modsKIK — игровые модификации",
+  "lang": "ru",
+  "description": "Каталог игровых модов и кабинет автора",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/logo_KIKcustom.png",
+      "sizes": "1280x1280",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#176b63",
+  "background_color": "#142d40"
+}
